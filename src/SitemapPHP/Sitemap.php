@@ -25,7 +25,7 @@ class Sitemap {
 	private $path;
 	private $filename = 'sitemap';
 	private $current_item = 0;
-	private $current_sitemap = 0;
+	private $current_sitemap = 1;
 
 	const EXT = '.xml';
 	const SCHEMA = 'http://www.sitemaps.org/schemas/sitemap/0.9';
@@ -159,7 +159,7 @@ class Sitemap {
 	 */
 	private function startSitemap() {
 		$this->setWriter(new \XMLWriter());
-		if ($this->getCurrentSitemap()) {
+		if ($this->getCurrentSitemap() >= 0) {
 			$this->getWriter()->openURI($this->getPath() . $this->getFilename() . self::SEPERATOR . $this->getCurrentSitemap() . self::EXT);
 		} else {
 			$this->getWriter()->openURI($this->getPath() . $this->getFilename() . self::EXT);
@@ -236,12 +236,12 @@ class Sitemap {
 	public function createSitemapIndex($loc, $lastmod = 'Today') {
 		$this->endSitemap();
 		$indexwriter = new \XMLWriter();
-		$indexwriter->openURI($this->getPath() . $this->getFilename() . self::SEPERATOR . self::INDEX_SUFFIX . self::EXT);
+		$indexwriter->openURI($this->getPath() . $this->getFilename() .self::EXT);
 		$indexwriter->startDocument('1.0', 'UTF-8');
 		$indexwriter->setIndent(true);
 		$indexwriter->startElement('sitemapindex');
 		$indexwriter->writeAttribute('xmlns', self::SCHEMA);
-		for ($index = 0; $index < $this->getCurrentSitemap(); $index++) {
+		for ($index = 1; $index < $this->getCurrentSitemap(); $index++) {
 			$indexwriter->startElement('sitemap');
 			$indexwriter->writeElement('loc', $loc . $this->getFilename() . ($index ? self::SEPERATOR . $index : '') . self::EXT);
 			$indexwriter->writeElement('lastmod', $this->getLastModifiedDate($lastmod));
