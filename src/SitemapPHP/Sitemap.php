@@ -124,7 +124,7 @@ class Sitemap {
 	 *
 	 * @return int
 	 */
-	private function getCurrentItem() {
+	public function getCurrentItem() {
 		return $this->current_item;
 	}
 
