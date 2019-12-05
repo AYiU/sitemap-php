@@ -26,11 +26,11 @@ class Sitemap {
 	private $filename = 'sitemap';
 	private $current_item = 0;
 	private $current_sitemap = 1;
+	private $itemPerSitemap = 10000;
 
 	const EXT = '.xml';
 	const SCHEMA = 'http://www.sitemaps.org/schemas/sitemap/0.9';
 	const DEFAULT_PRIORITY = null;
-	const ITEM_PER_SITEMAP = 50000;
 	const SEPERATOR = '-';
 	const INDEX_SUFFIX = 'index';
 
@@ -38,8 +38,9 @@ class Sitemap {
 	 *
 	 * @param string $domain
 	 */
-	public function __construct($domain) {
+	public function __construct($domain, $itemPerSitemap = 10000) {
 		$this->setDomain($domain);
+		$this->itemPerSitemap = $itemPerSitemap;
 	}
 
 	/**
@@ -73,7 +74,7 @@ class Sitemap {
 	/**
 	 * Assigns XMLWriter object instance
 	 *
-	 * @param \XMLWriter $writer 
+	 * @param \XMLWriter $writer
 	 */
 	private function setWriter(\XMLWriter $writer) {
 		$this->writer = $writer;
@@ -81,7 +82,7 @@ class Sitemap {
 
 	/**
 	 * Returns path of sitemaps
-	 * 
+	 *
 	 * @return string
 	 */
 	private function getPath() {
@@ -90,7 +91,7 @@ class Sitemap {
 
 	/**
 	 * Sets paths of sitemaps
-	 * 
+	 *
 	 * @param string $path
 	 * @return Sitemap
 	 */
@@ -101,7 +102,7 @@ class Sitemap {
 
 	/**
 	 * Returns filename of sitemap file
-	 * 
+	 *
 	 * @return string
 	 */
 	private function getFilename() {
@@ -110,7 +111,7 @@ class Sitemap {
 
 	/**
 	 * Sets filename of sitemap file
-	 * 
+	 *
 	 * @param string $filename
 	 * @return Sitemap
 	 */
@@ -130,7 +131,7 @@ class Sitemap {
 
 	/**
 	 * Increases item counter
-	 * 
+	 *
 	 */
 	private function incCurrentItem() {
 		$this->current_item = $this->current_item + 1;
@@ -147,7 +148,7 @@ class Sitemap {
 
 	/**
 	 * Increases sitemap file count
-	 * 
+	 *
 	 */
 	private function incCurrentSitemap() {
 		$this->current_sitemap = $this->current_sitemap + 1;
@@ -155,7 +156,7 @@ class Sitemap {
 
 	/**
 	 * Prepares sitemap XML document
-	 * 
+	 *
 	 */
 	private function startSitemap() {
 		$this->setWriter(new \XMLWriter());
@@ -173,14 +174,14 @@ class Sitemap {
 	/**
 	 * Adds an item to sitemap
 	 *
-	 * @param string $loc URL of the page. This value must be less than 2,048 characters. 
+	 * @param string $loc URL of the page. This value must be less than 2,048 characters.
 	 * @param string|null $priority The priority of this URL relative to other URLs on your site. Valid values range from 0.0 to 1.0.
 	 * @param string|null $changefreq How frequently the page is likely to change. Valid values are always, hourly, daily, weekly, monthly, yearly and never.
 	 * @param string|int|null $lastmod The date of last modification of url. Unix timestamp or any English textual datetime description.
 	 * @return Sitemap
 	 */
 	public function addItem($loc, $priority = self::DEFAULT_PRIORITY, $changefreq = NULL, $lastmod = NULL) {
-		if (($this->getCurrentItem() % self::ITEM_PER_SITEMAP) == 0) {
+		if (($this->getCurrentItem() % $this->itemPerSitemap) == 0) {
 			if ($this->getWriter() instanceof \XMLWriter) {
 				$this->endSitemap();
 			}
@@ -232,23 +233,48 @@ class Sitemap {
 	 *
 	 * @param string $loc Accessible URL path of sitemaps
 	 * @param string|int $lastmod The date of last modification of sitemap. Unix timestamp or any English textual datetime description.
+	 * @param boolean $gz gz sitemap file
+	 * @param boolean $indexSuffix suffix '-index' to sitemap index
 	 */
-	public function createSitemapIndex($loc, $lastmod = 'Today') {
+	public function createSitemapIndex($loc, $lastmod = 'Today', $gz = false, $indexSuffix = false) {
 		$this->endSitemap();
 		$indexwriter = new \XMLWriter();
-		$indexwriter->openURI($this->getPath() . $this->getFilename() .self::EXT);
+		if ($indexSuffix) {
+			$indexwriter->openURI($this->getPath() . $this->getFilename() . self::SEPERATOR . self::INDEX_SUFFIX . self::EXT);
+		} else {
+			$indexwriter->openURI($this->getPath() . $this->getFilename() .self::EXT);
+		}
+
 		$indexwriter->startDocument('1.0', 'UTF-8');
 		$indexwriter->setIndent(true);
 		$indexwriter->startElement('sitemapindex');
 		$indexwriter->writeAttribute('xmlns', self::SCHEMA);
 		for ($index = 1; $index < $this->getCurrentSitemap(); $index++) {
 			$indexwriter->startElement('sitemap');
-			$indexwriter->writeElement('loc', $loc . $this->getFilename() . ($index ? self::SEPERATOR . $index : '') . self::EXT);
+
+			// Compress
+			$filename = $this->getFilename() . ($index ? self::SEPERATOR . $index : '') . self::EXT;
+
+			if ($gz) {
+				$gzFilename = $filename . '.gz';
+				$xmlFilePath = $this->getPath() . $filename;
+				$gzFilePath =  $this->getPath() . $gzFilename;;
+
+				$content = file_get_contents(($xmlFilePath));
+				$content = gzencode($content);
+				file_put_contents($gzFilePath, $content);
+
+				unlink($xmlFilePath);
+
+				$indexwriter->writeElement('loc', $loc . $gzFilePath);
+			} else {
+				$indexwriter->writeElement('loc', $loc . $filename);
+			}
+
 			$indexwriter->writeElement('lastmod', $this->getLastModifiedDate($lastmod));
 			$indexwriter->endElement();
 		}
 		$indexwriter->endElement();
 		$indexwriter->endDocument();
 	}
-
 }
