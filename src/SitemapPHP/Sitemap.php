@@ -266,7 +266,7 @@ class Sitemap {
 
 				unlink($xmlFilePath);
 
-				$indexwriter->writeElement('loc', $loc . $gzFilePath);
+				$indexwriter->writeElement('loc', $loc . $gzFilename);
 			} else {
 				$indexwriter->writeElement('loc', $loc . $filename);
 			}
