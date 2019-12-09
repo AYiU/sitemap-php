@@ -1,9 +1,9 @@
 {
-    "name": "evert/sitemap-php",
+    "name": "ayiu/sitemap-php",
     "type": "library",
     "description": "Lightweight library for generating Google sitemap XML files",
     "keywords": ["Sitemap"],
-    "homepage": "https://github.com/evert/sitemap-php/",
+    "homepage": "https://github.com/AYiU/sitemap-php/",
     "license": "MIT",
     "authors": [
         {
